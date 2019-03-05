@@ -55,6 +55,6 @@ print(species[0])
 print(torch.tensor([coordinates[0][0]]))
 print(consts.species_to_tensor('CHHHH').unsqueeze(0))
 
-print(aev_computer.forward((consts.species_to_tensor('CHHHH').unsqueeze(0), torch.tensor([coordinates[0][0]])))[1].size())
+print(aev_computer.forward((consts.species_to_tensor('CHHHH').unsqueeze(0), torch.tensor([coordinates[0][0]])))[1])
 # Closes the H5 data file
 adl.cleanup()
