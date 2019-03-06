@@ -21,8 +21,6 @@ aev_computer = aev.AEVComputer(**consts)
 
 print(aev_computer)
 
-
-
 # Set the HDF5 file containing the data
 hdf5file = 'ani_gdb_s01.h5'
 
@@ -47,7 +45,9 @@ for data in adl:
     print("Path:   ", P)
     print("  Symbols:     ", S)
     print("  Coordinates: ", X)
+    print(len(X), len(X[0]))
     print("  Energies:    ", E, "\n")
+    print(len(E))
     print("  Smiles:      ", sm)
 
 print(coordinates[0][0])
