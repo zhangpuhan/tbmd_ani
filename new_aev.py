@@ -35,4 +35,7 @@ force = coordinate_tensor[:, 3:]
 coordinate = coordinate_tensor[0:, :3]
 print(coordinate.unsqueeze(0))
 
-print(aev_computer.forward((consts.species_to_tensor('HHHHHHHHHH').unsqueeze(0), coordinate.unsqueeze(0).double())))
+test_data = aev_computer.forward((consts.species_to_tensor('HHHHHHHHHH').unsqueeze(0),
+                                  coordinate.unsqueeze(0).double()))[1]
+pd.DataFrame(torch.squeeze(test_data, 0).cpu().numpy()).to_csv("test_data.csv", index=None, header=None)
+print(test_data)
