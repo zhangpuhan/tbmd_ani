@@ -4,7 +4,6 @@ import torch
 import neurochem
 import aev
 import natsort
-import time
 
 torch.set_default_tensor_type('torch.DoubleTensor')
 
