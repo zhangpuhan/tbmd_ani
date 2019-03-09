@@ -20,9 +20,11 @@ test = test.values
 
 train_x = np.array(train[:, :-3])
 train_y = np.array(train[:, -3:])
+# train_y = train_y[:, :1]**2.0 + train_y[:, 1:2]**2.0 + train_y[:, 2:3]**2.0
 
 test_x = np.array(test[:, :-3])
 test_y = np.array(test[:, -3:])
+# test_y = test_y[:, :1]**2.0 + test_y[:, 1:2]**2.0 + test_y[:, 2:3]**2.0
 
 
 
@@ -41,16 +43,15 @@ test_y = np.array(test[:, -3:])
 # model.fit(train_x, train_y, validation_split=0.2, epochs=100, batch_size=100, verbose=2)
 
 model = Sequential()
-model.add(Dense(512, input_dim=384, activation='relu', kernel_initializer='glorot_uniform'))
-model.add(Dense(256, activation='relu', kernel_initializer='glorot_uniform'))
-model.add(Dense(256, activation='relu', kernel_initializer='glorot_uniform'))
-model.add(Dense(128, activation='relu', kernel_initializer='glorot_uniform'))
-model.add(Dense(128, activation='relu', kernel_initializer='glorot_uniform'))
-model.add(Dense(64, activation='relu', kernel_initializer='glorot_uniform'))
-model.add(Dense(3, kernel_initializer='glorot_uniform', activation='linear'))
+model.add(Dense(512, input_dim=384, activation='relu'))
+model.add(Dense(256, activation='relu'))
+model.add(Dense(128, activation='relu'))
+model.add(Dense(128, activation='relu'))
+model.add(Dense(64, activation='relu'))
+model.add(Dense(1))
 #     #model.add(Dense(num_output, kernel_initializer='normal'))
 # 	# Compile model
-model.compile(loss='mean_squared_error', optimizer='adam') # metrics=?
+model.compile(loss='mean_squared_error', optimizer='adam')
 K.set_value(model.optimizer.lr, .00001)
 print(K.get_value(model.optimizer.lr))
 
