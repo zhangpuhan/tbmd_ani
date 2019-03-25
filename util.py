@@ -7,7 +7,8 @@ import itertools
 class GenerateCombinations:
     """ this function generate position combinations """
     def __init__(self):
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.device = torch.device('cpu')
+        # self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     def combination_2(self, n_number, n_select):
         nums = [i for i in range(1, n_number)]
@@ -38,7 +39,8 @@ class GenerateSampleGrid:
     def __init__(self):
         self.radial_parameters = list(RADIAL_SAMPLE_RUBRIC.values())
         self.angular_parameters = list(ANGULAR_SAMPLE_RUBRIC.values())
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.device = torch.device('cpu')
+        # self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     def generate_radial_grid(self):
         result = []

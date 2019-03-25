@@ -19,7 +19,8 @@ class Aev:
                     self.filenames.append(path + "/" + filename)
         self.filenames = natsort.natsorted(self.filenames)
         
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.device = torch.device('cpu')
+        # self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         print('Using device:', self.device)
         if self.device.type == 'cuda':
             print(torch.cuda.get_device_name(0))
@@ -30,8 +31,11 @@ class Aev:
     def process_files(self, radial_sample_comb, angular_sample_comb, radial_neighbor_combinations,
                       angular_neighbor_combinations):
 
+        force_result = []
+        train_set = []
+
         print(str(len(self.filenames)) + " files need to be processed")
-        for i in range(FILE_SIZES):
+        for i in range(0, FILE_SIZES):
             start_time = time.time()
             coordinate_tensor = torch.tensor(pd.read_csv(self.filenames[i], header=None).values, device=self.device)
             print("********************************************")
@@ -60,11 +64,18 @@ class Aev:
                                                            angular_neighbor_combinations,
                                                            neighbor_x, neighbor_y, neighbor_z)
 
+            radial_temp = torch.reshape(torch.cat(tuple(result_radial)), (-1, result_radial[0].size()[0]))
+            angular_temp = torch.reshape(torch.cat(tuple(result_angular)), (-1, result_angular[0].size()[0]))
+            force_result.append(force)
+            train_set.append(torch.cat((radial_temp, angular_temp), 1))
+
             # print(neighbor_y[1])
             # print(neighbor_z[1])
             # print(distance_a[1].size()[0], neighbor_x[1].size()[0])
             print("file " + str(i) + " has been retrieved")
             print("--- %s seconds ---" % (time.time() - start_time))
+
+        return train_set, force_result
 
     def extract_neighbors(self, x_cat, y_cat, z_cat, neighbor_x, neighbor_y, neighbor_z, distance_a):
         for i in range(ATOM_NUMBER):
@@ -191,11 +202,34 @@ class Aev:
         return result
 
 
+class FileEnergy:
+    def __init__(self, path):
+        self.filenames = []
+        for _, __, files in os.walk(path):
+            for filename in files:
+                if filename.endswith(".csv"):
+                    self.filenames.append(path + "/" + filename)
+        self.filenames = natsort.natsorted(self.filenames)
 
+        self.device = torch.device('cpu')
+        # self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        print('Using device:', self.device)
+        if self.device.type == 'cuda':
+            print(torch.cuda.get_device_name(0))
+            print('Memory Usage *******************************')
+            print('Allocated:', round(torch.cuda.memory_allocated(0) / 1024 ** 3, 1), 'GB')
+            print('Cached:   ', round(torch.cuda.memory_cached(0) / 1024 ** 3, 1), 'GB')
 
+    def process_files(self):
+        energy_result = []
 
+        print(str(len(self.filenames)) + " files need to be processed")
+        for i in range(0, FILE_SIZES):
+            start_time = time.time()
+            energy_tensor = torch.tensor(pd.read_csv(self.filenames[i], header=None).values, device=self.device)
+            energy_result.append(energy_tensor)
 
+            print("file " + str(i) + " has been retrieved")
+            print("--- %s seconds ---" % (time.time() - start_time))
 
-
-
-
+        return energy_result
