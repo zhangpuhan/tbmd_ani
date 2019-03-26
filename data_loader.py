@@ -61,9 +61,3 @@ coordinate_temp, force_temp = import_data_x(train_x_filename)
 torch.save(coordinate_temp, "coordinate03252019.pt")
 torch.save(energy_temp, "energy03252019.pt")
 torch.save(force_temp, "force03252019.pt")
-
-
-
-
-
-
