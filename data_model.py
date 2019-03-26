@@ -3,14 +3,24 @@ import torch.nn.functional as F
 import torch.utils.data as Data
 from constant import DIRECTIONS, FILE_SIZES, CUT_OFF, ATOM_NUMBER
 from fre_functions import f_c, exponential_map
+import util
 
 device = torch.device('cpu')
+
+# compute neighbor parameters:
+neighbor_comb = util.GenerateCombinations()
+angular_neighbor_combinations = neighbor_comb.generate_combination_dic(200, 2)
+radial_neighbor_combinations = neighbor_comb.generate_combination_dic(200, 1)
+
+# computer sample parameters:
+sample_comb = util.GenerateSampleGrid()
+angular_sample_comb = sample_comb.generate_angular_grid()
+radial_sample_comb = sample_comb.generate_radial_grid()
 
 
 def generate_radial_samples(distance_a, radial_sample_comb, radial_neighbor_combinations):
     result = []
     dominant_size = radial_sample_comb.size()[0]
-    print("generating " + str(dominant_size) + " radial elements")
     for i in range(len(distance_a)):
         neighbor_size = distance_a[i].size()[0]
         neighbor_pairs = radial_neighbor_combinations[neighbor_size]
@@ -32,7 +42,6 @@ def generate_angular_samples(distance_a, angular_sample_comb, angular_neighbor_c
                              neighbor_x, neighbor_y, neighbor_z):
     result = []
     dominant_size = angular_sample_comb.size()[0]
-    print("generating " + str(dominant_size) + " angular elements")
     for i in range(len(distance_a)):
         neighbor_size = distance_a[i].size()[0]
         neighbor_triples = angular_neighbor_combinations[neighbor_size]
@@ -128,8 +137,50 @@ def extract_neighbors(x_cat, y_cat, z_cat, neighbor_x, neighbor_y, neighbor_z, d
     return neighbor_x, neighbor_y, neighbor_z, distance_a
 
 
-def aev_computer(temp_coordinate):
-    return
+def aev_computer(coordinate_tensor):
+    x_coordinate = torch.reshape(coordinate_tensor[:, :1], (1, -1))
+    y_coordinate = torch.reshape(coordinate_tensor[:, 1:2], (1, -1))
+    z_coordinate = torch.reshape(coordinate_tensor[:, 2:3], (1, -1))
+
+    x_cat = torch.cat(tuple([x_coordinate for _ in range(x_coordinate.size()[1])]), 0)
+    y_cat = torch.cat(tuple([y_coordinate for _ in range(y_coordinate.size()[1])]), 0)
+    z_cat = torch.cat(tuple([z_coordinate for _ in range(z_coordinate.size()[1])]), 0)
+
+    neighbor_x = [[] for _ in range(ATOM_NUMBER)]
+    neighbor_y = [[] for _ in range(ATOM_NUMBER)]
+    neighbor_z = [[] for _ in range(ATOM_NUMBER)]
+    distance_a = [[] for _ in range(ATOM_NUMBER)]
+
+    neighbor_x, neighbor_y, neighbor_z, distance_a = extract_neighbors(x_cat, y_cat, z_cat,
+                                                                       neighbor_x, neighbor_y, neighbor_z,
+                                                                       distance_a)
+
+    result_radial = generate_radial_samples(distance_a, radial_sample_comb, radial_neighbor_combinations)
+    result_angular = generate_angular_samples(distance_a, angular_sample_comb,
+                                              angular_neighbor_combinations,
+                                              neighbor_x, neighbor_y, neighbor_z)
+
+    radial_temp = torch.reshape(torch.cat(tuple(result_radial)), (-1, result_radial[0].size()[0]))
+    angular_temp = torch.reshape(torch.cat(tuple(result_angular)), (-1, result_angular[0].size()[0]))
+    return torch.cat((radial_temp, angular_temp), 1)
+
+
+class Net(torch.nn.Module):
+    def __init__(self):
+        super(Net, self).__init__()
+        self.input = torch.nn.Linear(90, 256)
+        self.hidden_1 = torch.nn.Linear(256, 128)
+        self.hidden_2 = torch.nn.Linear(128, 64)
+        self.hidden_3 = torch.nn.Linear(64, 32)
+        self.output = torch.nn.Linear(32, 1)
+
+    def forward(self, x):
+        x = F.relu(self.input(x))
+        x = F.relu(self.hidden_1(x))
+        x = F.relu(self.hidden_2(x))
+        x = F.relu(self.hidden_3(x))
+        x = self.output(x)
+        return x
 
 
 coordinate_temp = torch.load("coordinate03252019.pt")
@@ -143,8 +194,31 @@ loader = Data.DataLoader(
     shuffle=True
 )
 
-for step, (coordinate, energy, force) in enumerate(loader):
-    print(coordinate, energy, force)
+net = Net()
+optimizer = torch.optim.Adam(net.parameters(), lr=0.001)
+loss_func = torch.nn.MSELoss()
+
+for epoch in range(50):
+    for step, (coordinate, energy, force) in enumerate(loader):
+        print(coordinate.size()[0])
+        for i in range(coordinate.size()[0]):
+            print(torch.reshape(aev_computer(coordinate[i]), (1, -1)).size())
+
+
+for epoch in range(50):
+    for step, (coordinate, energy, force) in enumerate(loader):
+        coordinate.requires_grad_(True)
+        inter_coordinate = coordinate.flatten(1)
+        prediction_temp = net(inter_coordinate.float())
+        loss_1 = loss_func(prediction_temp, energy.float())
+        # loss_1.backward(retain_graph=True)
+
+        # prediction = torch.autograd.grad(prediction_temp.sum(), batch_x, create_graph=True)
+        # loss_2 = 20.0 * loss_func(-prediction[0], batch_y)
+        print('Epoch: ', epoch, '| Step: ', step, '| loss: ', loss_1.data.numpy())
+        loss_1.backward()
+        optimizer.step()
+
 
 
 
