@@ -199,26 +199,30 @@ net = Net()
 optimizer = torch.optim.Adam(net.parameters(), lr=0.001)
 loss_func = torch.nn.MSELoss()
 
+
 for epoch in range(50):
     for step, (coordinate, energy, force) in enumerate(loader):
         coordinate.requires_grad_(True)
         print(energy.size())
         print(coordinate.size()[0])
+
+        optimizer.zero_grad()
         x_temp = torch.reshape(aev_computer(coordinate[0]), (1, -1))
         for i in range(1, coordinate.size()[0]):
             x_temp = torch.cat((x_temp, torch.reshape(aev_computer(coordinate[i]), (1, -1))))
         print(x_temp.size())
+
         prediction_temp = net(x_temp.float())
-        print(prediction_temp)
-        loss_1 = loss_func(prediction_temp, energy.float())
-        # loss_1.backward(retain_graph=True)
+        predict_energy = torch.sum(prediction_temp, dim=1, keepdim=True)
+        print(predict_energy)
+        loss_1 = loss_func(predict_energy, energy.float())
+        loss_1.backward(retain_graph=True)
 
         # prediction = torch.autograd.grad(prediction_temp.sum(), batch_x, create_graph=True)
         # loss_2 = 20.0 * loss_func(-prediction[0], batch_y)
         print('Epoch: ', epoch, '| Step: ', step, '| loss: ', loss_1.data.numpy())
         loss_1.backward()
         optimizer.step()
-
 
 
 
