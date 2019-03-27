@@ -183,46 +183,22 @@ class Net(torch.nn.Module):
         return x
 
 
-coordinate_temp = torch.load("coordinate03252019.pt")
+coordinate_temp = torch.load("coordinate03252019.pt").requires_grad_(True)
 energy_temp = torch.load("energy03252019.pt")
 force_temp = torch.load("force03252019.pt")
 
 
-torch_data_set = Data.TensorDataset(coordinate_temp, energy_temp, force_temp)
-loader = Data.DataLoader(
-    dataset=torch_data_set,
-    batch_size=64,
-    shuffle=True
-)
+print(coordinate_temp.size())
+aev_temp = []
+for i in range(0, 500):
+    aev_temp.append(torch.reshape(aev_computer(coordinate_temp[i]), (1, -1)))
+    print(str(i) + " is done.")
 
-net = Net()
-optimizer = torch.optim.Adam(net.parameters(), lr=0.001)
-loss_func = torch.nn.MSELoss()
+print(aev_temp)
+print(coordinate_temp[0])
 
+print(torch.autograd.grad(torch.sum(aev_temp[0]), coordinate_temp))
 
-for epoch in range(50):
-    for step, (coordinate, energy, force) in enumerate(loader):
-        coordinate.requires_grad_(True)
-        print(energy.size())
-        print(coordinate.size()[0])
-
-        optimizer.zero_grad()
-        x_temp = torch.reshape(aev_computer(coordinate[0]), (1, -1))
-        for i in range(1, coordinate.size()[0]):
-            x_temp = torch.cat((x_temp, torch.reshape(aev_computer(coordinate[i]), (1, -1))))
-        print(x_temp.size())
-
-        prediction_temp = net(x_temp.float())
-        predict_energy = torch.sum(prediction_temp, dim=1, keepdim=True)
-        print(predict_energy)
-        loss_1 = loss_func(predict_energy, energy.float())
-        loss_1.backward(retain_graph=True)
-
-        # prediction = torch.autograd.grad(prediction_temp.sum(), batch_x, create_graph=True)
-        # loss_2 = 20.0 * loss_func(-prediction[0], batch_y)
-        print('Epoch: ', epoch, '| Step: ', step, '| loss: ', loss_1.data.numpy())
-        loss_1.backward()
-        optimizer.step()
 
 
 
