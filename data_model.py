@@ -7,6 +7,8 @@ import util
 
 device = torch.device('cpu')
 
+torch.manual_seed(7)
+
 # compute neighbor parameters:
 neighbor_comb = util.GenerateCombinations()
 angular_neighbor_combinations = neighbor_comb.generate_combination_dic(200, 2)
@@ -168,37 +170,63 @@ def aev_computer(coordinate_tensor):
 class Net(torch.nn.Module):
     def __init__(self):
         super(Net, self).__init__()
-        self.input = torch.nn.Linear(4440, 2560)
-        self.hidden_1 = torch.nn.Linear(2560, 1280)
-        self.hidden_2 = torch.nn.Linear(1280, 640)
-        self.hidden_3 = torch.nn.Linear(640, 320)
-        self.output = torch.nn.Linear(320, 30)
+        self.input = torch.nn.Linear(148, 256)
+        self.hidden_1 = torch.nn.Linear(256, 128)
+        self.hidden_2 = torch.nn.Linear(128, 64)
+        self.hidden_3 = torch.nn.Linear(64, 32)
+        self.output = torch.nn.Linear(32, 1)
 
     def forward(self, x):
-        x = F.relu(self.input(x))
-        x = F.relu(self.hidden_1(x))
-        x = F.relu(self.hidden_2(x))
-        x = F.relu(self.hidden_3(x))
+        x = F.celu(self.input(x))
+        x = F.celu(self.hidden_1(x))
+        x = F.celu(self.hidden_2(x))
+        x = F.celu(self.hidden_3(x))
         x = self.output(x)
         return x
 
 
-coordinate_temp = torch.load("coordinate03252019.pt").requires_grad_(True)
+coordinate_temp = torch.load("coordinate03252019.pt")
 energy_temp = torch.load("energy03252019.pt")
 force_temp = torch.load("force03252019.pt")
 
 
-print(coordinate_temp.size())
-aev_temp = []
-for i in range(0, 500):
-    aev_temp.append(torch.reshape(aev_computer(coordinate_temp[i]), (1, -1)))
-    print(str(i) + " is done.")
+torch_data_set = Data.TensorDataset(coordinate_temp, energy_temp, force_temp)
+loader = Data.DataLoader(
+    dataset=torch_data_set,
+    batch_size=1,
+    shuffle=True
+)
 
-print(aev_temp)
-print(coordinate_temp[0])
-
-print(torch.autograd.grad(torch.sum(aev_temp[0]), coordinate_temp))
-
-
+net = Net()
+optimizer = torch.optim.Adam(net.parameters(), lr=0.001)
+loss_func = torch.nn.MSELoss()
 
 
+for epoch in range(50):
+    for step, (coordinate, energy, force) in enumerate(loader):
+        temp_coordinate = coordinate[0].requires_grad_(True)
+        print(energy)
+        print(temp_coordinate.size()[0])
+
+        optimizer.zero_grad()
+
+        x_temp = aev_computer(temp_coordinate)
+
+        energy_prediction_temp = net.forward(x_temp.float())
+        energy_prediction = torch.sum(energy_prediction_temp)
+
+        # loss_1 = loss_func(energy_prediction, torch.sum(energy).float())
+        # loss_1.backward(retain_graph=True)
+
+        force_prediction = -torch.autograd.grad(energy_prediction, temp_coordinate, create_graph=True)[0]
+
+        # loss_2 = loss_func(force_prediction, force[0])
+        print(force_prediction.float())
+        loss = loss_func(force_prediction.float(), force[0].float())
+
+        # print('Epoch: ', epoch, '| Step: ', step, '| loss_1: ', loss_1)
+        print('Epoch: ', epoch, '| Step: ', step, '| loss: ', loss)
+        print("******************************************")
+
+        loss.backward()
+        optimizer.step()
