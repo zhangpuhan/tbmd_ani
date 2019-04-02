@@ -224,8 +224,9 @@ for epoch in range(50):
         # loss_2 = loss_func(force_prediction, force[0])
         # print(force_prediction.float())
         loss = loss_func(force_prediction.float(), force[0].float())
-        print(force_prediction)
-        print(force[0])
+        # loss = loss_func(energy_prediction.float(), torch.sum(energy).float())
+        # print(energy_prediction_temp)
+        print(torch.sum((force_prediction - force[0])**2.0))
 
         # print('Epoch: ', epoch, '| Step: ', step, '| loss_1: ', loss_1)
         print('Epoch: ', epoch, '| Step: ', step, '| loss: ', loss)
