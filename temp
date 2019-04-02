@@ -57,3 +57,34 @@ for epoch in range(50):
         # loss_2 = 20.0 * loss_func(-prediction[0], batch_y)
         print('Epoch: ', epoch, '| Step: ', step, '| loss: ', loss_1.data.numpy())
         optimizer.step()
+
+
+# works
+    for step, (coordinate, energy, force) in enumerate(loader):
+        temp_coordinate = coordinate[0].requires_grad_(True)
+        print(energy)
+        print(temp_coordinate.size()[0])
+
+        optimizer.zero_grad()
+
+        x_temp = aev_computer(temp_coordinate)
+
+        energy_prediction_temp = net.forward(x_temp.float())
+        energy_prediction = torch.sum(energy_prediction_temp)
+        print(energy_prediction)
+
+        # loss_1 = loss_func(energy_prediction, torch.sum(energy).float())
+        # loss_1.backward(retain_graph=True)
+
+        force_prediction = -torch.autograd.grad(energy_prediction, temp_coordinate, create_graph=True)[0]
+
+        # loss_2 = loss_func(force_prediction, force[0])
+        # print(force_prediction.float())
+        loss = loss_func(force_prediction.float(), force[0].float())
+
+        # print('Epoch: ', epoch, '| Step: ', step, '| loss_1: ', loss_1)
+        print('Epoch: ', epoch, '| Step: ', step, '| loss: ', loss)
+        print("******************************************")
+
+        loss.backward()
+        optimizer.step()

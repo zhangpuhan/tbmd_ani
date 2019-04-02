@@ -214,6 +214,7 @@ for epoch in range(50):
 
         energy_prediction_temp = net.forward(x_temp.float())
         energy_prediction = torch.sum(energy_prediction_temp)
+        print(energy_prediction)
 
         # loss_1 = loss_func(energy_prediction, torch.sum(energy).float())
         # loss_1.backward(retain_graph=True)
@@ -221,8 +222,10 @@ for epoch in range(50):
         force_prediction = -torch.autograd.grad(energy_prediction, temp_coordinate, create_graph=True)[0]
 
         # loss_2 = loss_func(force_prediction, force[0])
-        print(force_prediction.float())
+        # print(force_prediction.float())
         loss = loss_func(force_prediction.float(), force[0].float())
+        print(force_prediction)
+        print(force[0])
 
         # print('Epoch: ', epoch, '| Step: ', step, '| loss_1: ', loss_1)
         print('Epoch: ', epoch, '| Step: ', step, '| loss: ', loss)
