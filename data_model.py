@@ -201,12 +201,11 @@ net = Net()
 optimizer = torch.optim.Adam(net.parameters(), lr=0.001)
 loss_func = torch.nn.MSELoss()
 
+loss_val = []
 
-for epoch in range(50):
+for epoch in range(20):
     for step, (coordinate, energy, force) in enumerate(loader):
         temp_coordinate = coordinate[0].requires_grad_(True)
-        print(energy)
-        print(temp_coordinate.size()[0])
 
         optimizer.zero_grad()
 
@@ -226,11 +225,22 @@ for epoch in range(50):
         loss = loss_func(force_prediction.float(), force[0].float())
         # loss = loss_func(energy_prediction.float(), torch.sum(energy).float())
         # print(energy_prediction_temp)
-        print(torch.sum((force_prediction - force[0])**2.0))
+        # print(torch.sum((force_prediction - force[0])**2.0))
 
         # print('Epoch: ', epoch, '| Step: ', step, '| loss_1: ', loss_1)
-        print('Epoch: ', epoch, '| Step: ', step, '| loss: ', loss)
+        print('Epoch: ', epoch, '| Step: ', step, '| loss: ', loss.data.numpy())
+        loss_val.append(loss.data.numpy())
         print("******************************************")
 
         loss.backward()
         optimizer.step()
+
+
+for param_tensor in net.state_dict():
+    print(param_tensor, "\t", net.state_dict()[param_tensor].size())
+
+torch.save(net.state_dict(), 'net.pt')
+
+print(loss_val)
+
+
