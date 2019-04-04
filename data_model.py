@@ -203,7 +203,7 @@ loss_func = torch.nn.MSELoss()
 
 loss_val = []
 
-for epoch in range(20):
+for epoch in range(11):
     for step, (coordinate, energy, force) in enumerate(loader):
         temp_coordinate = coordinate[0].requires_grad_(True)
 
