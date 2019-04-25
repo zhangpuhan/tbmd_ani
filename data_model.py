@@ -185,6 +185,18 @@ class Net(torch.nn.Module):
         return x
 
 
+class EnergyNet(torch.nn.Module):
+    def __init__(self):
+        super(EnergyNet, self).__init__()
+        self.input = torch.nn.Linear(1, 1)
+        self.output = torch.nn.Linear(1, 1)
+
+    def forward(self, x):
+        x = F.relu(self.input(x))
+        x = self.output(x)
+        return x
+
+
 coordinate_temp = torch.load("coordinate03252019.pt")
 energy_temp = torch.load("energy03252019.pt")
 force_temp = torch.load("force03252019.pt")
@@ -198,49 +210,57 @@ loader = Data.DataLoader(
 )
 
 net = Net()
+energy_net = EnergyNet()
 optimizer = torch.optim.Adam(net.parameters(), lr=0.001)
+optimizer_2 = torch.optim.Adam(energy_net.parameters(), lr=0.1)
 loss_func = torch.nn.MSELoss()
 
-loss_val = []
 
 for epoch in range(11):
     for step, (coordinate, energy, force) in enumerate(loader):
         temp_coordinate = coordinate[0].requires_grad_(True)
 
         optimizer.zero_grad()
+        optimizer_2.zero_grad()
 
         x_temp = aev_computer(temp_coordinate)
 
         energy_prediction_temp = net.forward(x_temp.float())
         energy_prediction = torch.sum(energy_prediction_temp)
-        print(energy_prediction)
+        print(energy_prediction.unsqueeze(0))
 
         # loss_1 = loss_func(energy_prediction, torch.sum(energy).float())
         # loss_1.backward(retain_graph=True)
 
         force_prediction = -torch.autograd.grad(energy_prediction, temp_coordinate, create_graph=True)[0]
+        energy_prediction_fit = energy_net(energy_prediction.unsqueeze(0))
+
+        print(energy_prediction_fit)
 
         # loss_2 = loss_func(force_prediction, force[0])
         # print(force_prediction.float())
-        loss = loss_func(force_prediction.float(), force[0].float())
+
+        print(energy_prediction_fit)
+        loss = loss_func(force_prediction.float(), force[0].float()) + \
+               loss_func(torch.sum(energy_prediction_fit).float(), torch.sum(energy).float())
         # loss = loss_func(energy_prediction.float(), torch.sum(energy).float())
         # print(energy_prediction_temp)
         # print(torch.sum((force_prediction - force[0])**2.0))
 
         # print('Epoch: ', epoch, '| Step: ', step, '| loss_1: ', loss_1)
         print('Epoch: ', epoch, '| Step: ', step, '| loss: ', loss.data.numpy())
-        loss_val.append(loss.data.numpy())
         print("******************************************")
 
         loss.backward()
         optimizer.step()
+        optimizer_2.step()
 
 
-for param_tensor in net.state_dict():
-    print(param_tensor, "\t", net.state_dict()[param_tensor].size())
+# for param_tensor in net.state_dict():
+    # print(param_tensor, "\t", net.state_dict()[param_tensor].size())
 
-torch.save(net.state_dict(), 'net.pt')
+# torch.save(net.state_dict(), 'net.pt')
 
-print(loss_val)
+# print(loss_val)
 
 

@@ -23,8 +23,8 @@ def read_file_names(path):
     return filenames
 
 
-train_x_filename = read_file_names("testdata_0403")
-train_energy_filename = read_file_names("test_energy_0403")
+train_x_filename = read_file_names("testdata_0403_50")
+train_energy_filename = read_file_names("test_energy_0403_50")
 
 
 def import_data_x(filename):
@@ -58,6 +58,6 @@ def import_data_energy(filename):
 energy_temp = import_data_energy(train_energy_filename)
 coordinate_temp, force_temp = import_data_x(train_x_filename)
 
-torch.save(coordinate_temp, "coordinate04032019.pt")
-torch.save(energy_temp, "energy04032019.pt")
-torch.save(force_temp, "force04032019.pt")
+torch.save(coordinate_temp, "coordinate04032019_50.pt")
+torch.save(energy_temp, "energy04032019_50.pt")
+torch.save(force_temp, "force04032019_50.pt")

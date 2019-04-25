@@ -4,7 +4,7 @@ import torch.utils.data as Data
 from constant import DIRECTIONS, FILE_SIZES, CUT_OFF, ATOM_NUMBER
 from fre_functions import f_c, exponential_map
 import util
-
+import csv
 
 device = torch.device('cpu')
 
@@ -193,9 +193,9 @@ model.eval()
 for param_tensor in model.state_dict():
     print(param_tensor, "\t", model.state_dict()[param_tensor].size())
 
-coordinate_temp = torch.load("coordinate04032019.pt")
-energy_temp = torch.load("energy04032019.pt")
-force_temp = torch.load("force04032019.pt")
+coordinate_temp = torch.load("coordinate03252019.pt")
+energy_temp = torch.load("energy03252019.pt")
+force_temp = torch.load("force03252019.pt")
 
 loss_func = torch.nn.MSELoss()
 
@@ -205,29 +205,35 @@ loader = Data.DataLoader(
     batch_size=1,
     shuffle=True
 )
+with open("output_train.csv", "w") as f:
+    writer = csv.writer(f)
 
-for epoch in range(11):
-    for step, (coordinate, energy, force) in enumerate(loader):
-        temp_coordinate = coordinate[0].requires_grad_(True)
+    for epoch in range(11):
+        for step, (coordinate, energy, force) in enumerate(loader):
+            temp_coordinate = coordinate[0].requires_grad_(True)
 
-        x_temp = aev_computer(temp_coordinate)
+            x_temp = aev_computer(temp_coordinate)
 
-        energy_prediction_temp = model.forward(x_temp.float())
-        energy_prediction = torch.sum(energy_prediction_temp)
-        print(energy_prediction)
+            energy_prediction_temp = model.forward(x_temp.float())
+            energy_prediction = torch.sum(energy_prediction_temp)
+            print(energy_prediction)
 
-        # loss_1 = loss_func(energy_prediction, torch.sum(energy).float())
-        # loss_1.backward(retain_graph=True)
+            # loss_1 = loss_func(energy_prediction, torch.sum(energy).float())
+            # loss_1.backward(retain_graph=True)
 
-        force_prediction = -torch.autograd.grad(energy_prediction, temp_coordinate, create_graph=True)[0]
+            force_prediction = -torch.autograd.grad(energy_prediction, temp_coordinate, create_graph=True)[0]
+            result = torch.cat((torch.reshape(force, (-1, 1)),
+                                torch.reshape(force_prediction, (-1, 1))), 1).detach().numpy()
 
-        # loss_2 = loss_func(force_prediction, force[0])
-        # print(force_prediction.float())
-        loss = loss_func(force_prediction.float(), force[0].float())
-        # loss = loss_func(energy_prediction.float(), torch.sum(energy).float())
-        # print(energy_prediction_temp)
-        # print(torch.sum((force_prediction - force[0])**2.0))
+            writer.writerows(result)
 
-        # print('Epoch: ', epoch, '| Step: ', step, '| loss_1: ', loss_1)
-        print('Epoch: ', epoch, '| Step: ', step, '| loss: ', loss.data.numpy())
-        print("******************************************")
+            # loss_2 = loss_func(force_prediction, force[0])
+            # print(force_prediction.float())
+            loss = loss_func(force_prediction.float(), force[0].float())
+            # loss = loss_func(energy_prediction.float(), torch.sum(energy).float())
+            # print(energy_prediction_temp)
+            # print(torch.sum((force_prediction - force[0])**2.0))
+
+            # print('Epoch: ', epoch, '| Step: ', step, '| loss_1: ', loss_1)
+            print('Epoch: ', epoch, '| Step: ', step, '| loss: ', loss.data.numpy())
+            print("******************************************")
